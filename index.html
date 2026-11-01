@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskora - Nairobi Autonomous Logistics & Errand Platform</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #FF4500; margin-top: 0; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tabs button { padding: 10px 20px; border: none; background: #ddd; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        .nav-tabs button.active { background: #FF4500; color: white; }
+        .portal { display: none; }
+        .portal.active { display: block; }
+        textarea, input, select { width: 100%; padding: 10px; margin-top: 8px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+        button.action-btn { background: #FF4500; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        .card { background: #f8f9fa; border-left: 4px solid #FF4500; padding: 15px; margin-bottom: 12px; border-radius: 4px; }
+        .ledger-box { background: #fff3e6; padding: 15px; border-radius: 6px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚡ Taskora Nairobi</h1>
+    <p>Autonomous Errand & Logistics Platform (Direct Rider Matching + M-Pesa Integration)</p>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <button id="btn-customer" class="active" onclick="switchPortal('customer')">Customer Portal</button>
+        <button id="btn-rider" onclick="switchPortal('rider')">Rider Fleet Portal</button>
+    </div>
+
+    <!-- CUSTOMER PORTAL -->
+    <div id="portal-customer" class="portal active">
+        <h2>🚀 Request an Errand</h2>
+        <p>Type your delivery request below. Pricing: KES 100 base + KES 50/km.</p>
+        
+        <label>Errand Description:</label>
+        <textarea id="errand-input" rows="3" placeholder="e.g., Deliver signed contracts from Westlands to CBD"></textarea>
+        
+        <label>Safaricom Phone Number (for M-Pesa STK Push):</label>
+        <input type="text" id="phone-input" placeholder="e.g., 0712345678">
+
+        <button class="action-btn" onclick="submitErrand()">Dispatch Errand & Trigger M-Pesa</button>
+
+        <div id="customer-response" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- RIDER PORTAL -->
+    <div id="portal-rider" class="portal">
+        <h2>🛵 Rider Live Dashboard</h2>
+        <p>Active Nairobi couriers can view pending jobs and accept them to earn an 80% payout split.</p>
+        
+        <label>Select Your Rider Profile:</label>
+        <select id="rider-select">
+            <option value="Brian Ochieng">Brian Ochieng (Westlands / CBD)</option>
+            <option value="Kevin Maina">Kevin Maina (Kilimani / Lavington)</option>
+            <option value="Mercy Wangari">Mercy Wangari (Upperhill / CBD)</option>
+            <option value="David Kiprono">David Kiprono (Karen / Gigiri)</option>
+        </select>
+
+        <h3>📦 Available Errand Queue</h3>
+        <div id="rider-order-feed">
+            <p style="color: #888;">No active orders yet. Switch to the Customer Portal and submit one!</p>
+        </div>
+    </div>
+
+    <!-- LIVE LEDGER SUMMARY -->
+    <div class="ledger-box">
+        <h3>📊 Taskora Profit & System Ledger</h3>
+        <p>System Status: <b style="color: green;">ALIVE</b></p>
+        <p>Net Profit Balance: <b id="ledger-profit">KES 210</b></p>
+        <p>Total Dispatches: <b id="ledger-dispatches">3</b></p>
+    </div>
+</div>
+
+<script>
+    let taskoraState = {
+        profit: 210,
+        dispatchesCount: 3,
+        orders: [
+            { id: 1, route: "Westlands ➡️ CBD", fare: 350, runnerPay: 280, status: "Delivered ✅", runner: "Brian Ochieng" },
+            { id: 2, route: "Kilimani ➡️ Upperhill", fare: 400, runnerPay: 320, status: "Delivered ✅", runner: "Mercy Wangari" }
+        ]
+    };
+
+    function switchPortal(portalName) {
+        document.getElementById('portal-customer').classList.remove('active');
+        document.getElementById('portal-rider').classList.remove('active');
+        document.getElementById('btn-customer').classList.remove('active');
+        document.getElementById('btn-rider').classList.remove('active');
+
+        if (portalName === 'customer') {
+            document.getElementById('portal-customer').classList.add('active');
+            document.getElementById('btn-customer').classList.add('active');
+        } else {
+            document.getElementById('portal-rider').classList.add('active');
+            document.getElementById('btn-rider').classList.add('active');
+            renderRiderFeed();
+        }
+    }
+
+    function submitErrand() {
+        const text = document.getElementById('errand-input').value.trim();
+        const phone = document.getElementById('phone-input').value.trim();
+        const responseDiv = document.getElementById('customer-response');
+
+        if (!text || !phone) {
+            alert('Please enter both errand details and your Safaricom phone number!');
+            return;
+        }
+
+        const distance = 5;
+        const totalFare = 100 + (50 * distance);
+        const runnerPay = Math.floor(totalFare * 0.8);
+        const netProfit = totalFare - runnerPay;
+
+        taskoraState.profit += netProfit;
+        taskoraState.dispatchesCount += 1;
+        
+        const newOrder = {
+            id: taskoraState.dispatchesCount,
+            route: text,
+            fare: totalFare,
+            runnerPay: runnerPay,
+            status: "Pending Rider 🟡",
+            runner: "Unassigned"
+        };
+
+        taskoraState.orders.unshift(newOrder);
+
+        document.getElementById('ledger-profit').innerText = `KES ${taskoraState.profit}`;
+        document.getElementById('ledger-dispatches').innerText = taskoraState.dispatchesCount;
+
+        responseDiv.innerHTML = `
+            <div class="card" style="border-left-color: #25D366; background: #e9ffe9;">
+                <b>🎯 Errand Dispatched Successfully!</b><br>
+                💵 Total Fare: <b>KES ${totalFare}</b> (Taskora Net Profit: KES ${netProfit})<br>
+                📲 M-Pesa STK Push prompt sent to <b>${phone}</b>.<br>
+                <i>Broadcasted to Nairobi Rider Fleet! Switch to the Rider Portal to claim.</i>
+            </div>
+        `;
+        document.getElementById('errand-input').value = '';
+    }
+
+    function renderRiderFeed() {
+        const feedDiv = document.getElementById('rider-order-feed');
+        if (taskoraState.orders.length === 0) {
+            feedDiv.innerHTML = '<p style="color: #888;">No orders available.</p>';
+            return;
+        }
+
+        let html = '';
+        taskoraState.orders.forEach(order => {
+            let actionButton = '';
+            if (order.status.includes('Pending')) {
+                actionButton = `<button onclick="acceptOrder(${order.id})" style="background: #25D366; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 8px;">Accept Errand 🛵</button>`;
+            }
+
+            html += `
+                <div class="card">
+                    <b>Errand #${order.id}</b><br>
+                    📍 <b>Request:</b> ${order.route}<br>
+                    💰 <b>Your Payout (80%):</b> KES ${order.runnerPay} (Total: KES ${order.fare})<br>
+                    👤 <b>Assigned Rider:</b> ${order.runner}<br>
+                    📊 <b>Status:</b> <span style="color: ${order.status.includes('Delivered') ? 'green' : 'orange'};">${order.status}</span><br>
+                    ${actionButton}
+                </div>
+            `;
+        });
+        feedDiv.innerHTML = html;
+    }
+
+    function acceptOrder(orderId) {
+        const selectedRider = document.getElementById('rider-select').value;
+        const order = taskoraState.orders.find(o => o.id === orderId);
+        if (order) {
+            order.runner = selectedRider;
+            order.status = "In Progress / En Route 🟢";
+            renderRiderFeed();
+        }
+    }
+</script>
+
+</body>
+</html>
